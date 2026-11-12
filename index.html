@@ -31,7 +31,7 @@
   .seg button{border:0;background:#fff;padding:6px 12px;font:inherit;font-weight:700;cursor:pointer;color:var(--ink)}
   .seg button.on{background:var(--acc);color:#fff}
   nav.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
-  nav.tabs button{flex:1 1 150px;border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 8px;font:inherit;font-weight:700;cursor:pointer;color:var(--ink)}
+  nav.tabs button{flex:1 1 128px;border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 8px;font:inherit;font-weight:700;cursor:pointer;color:var(--ink)}
   nav.tabs button:hover{border-color:var(--acc2)}
   nav.tabs button.on{background:var(--acc);border-color:var(--acc);color:#fff}
   .card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px 18px 20px;box-shadow:0 4px 18px rgba(91,33,182,.07)}
@@ -86,6 +86,29 @@
   .fb .ans{font-size:1.15rem;margin:6px 0}
   .fb .nlwrap{background:#fff}
   footer{text-align:center;color:var(--muted);font-size:.85rem;margin-top:22px}
+  /* halmazműveletek */
+  .nlrow{display:flex;align-items:center;gap:8px}
+  .nlrow .nlwrap{flex:1;margin:4px 0}
+  .nllab{min-width:62px;text-align:center;font-weight:800;font-size:1.05rem;border-radius:10px;padding:6px 4px;background:#fff;border:2px solid currentColor;white-space:nowrap}
+  .abbox.hidden .nlrow{display:none}
+  .abtoggle{display:flex;justify-content:flex-end;font-size:.9rem;color:var(--muted);margin:2px 0 0;gap:6px;align-items:center}
+  .sect{margin-top:16px;padding-top:12px;border-top:2px dashed var(--line)}
+  .sect h4{margin:0 0 6px;font-size:1rem;color:var(--acc)}
+  svg.paint{touch-action:none;cursor:crosshair}
+  .forms{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:6px 0}
+  .forms button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 12px;font:inherit;font-weight:700;cursor:pointer;color:var(--ink)}
+  .forms button.on{background:var(--accl);border-color:var(--acc2);color:var(--acc)}
+  .forms button:disabled{cursor:default}
+  .unionRow{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px 10px}
+  .unionRow .builder{margin:10px 0 4px}
+  .cup{font-size:2rem;font-weight:800;color:var(--acc)}
+  .builder.sm .br{width:46px;height:56px;font-size:1.9rem}
+  .builder.sm .end input{width:70px;height:48px;font-size:1.3rem}
+  .emptyset{text-align:center;font-size:2.6rem;font-weight:800;color:var(--acc);margin:10px 0;font-family:'Cambria Math','STIX Two Math','Times New Roman',serif}
+  .es{font-family:'Cambria Math','STIX Two Math','Times New Roman',serif;font-weight:700}
+  .theory-ops{margin:12px 2px 0;font-size:.95rem}
+  .theory-ops li{margin:3px 0}
+  .ok-i{color:var(--ok);font-weight:800}.bad-i{color:var(--bad);font-weight:800}
   @media (max-width:560px){
     header h1{font-size:1.6rem}
     .big{font-size:1.6rem}.big.set{font-size:1.3rem}
@@ -93,6 +116,8 @@
     .br{width:44px;height:54px;font-size:1.8rem}
     .end input,.rel input{width:64px;height:46px;font-size:1.2rem}
     .rel select{height:46px;font-size:1.2rem}
+    .nlrow{flex-direction:column;align-items:stretch;gap:0}
+    .nllab{align-self:flex-start;min-width:0;padding:2px 12px;font-size:.95rem}
   }
 </style>
 </head>
@@ -109,6 +134,7 @@
       <p class="theory-note">● <b>Tele karika</b> = a végpont <b>eleme</b> a halmaznak (zárt végpont, ≤ vagy ≥, szögletes zárójel befelé).<br>
       ○ <b>Üres karika</b> = a végpont <b>nem eleme</b> a halmaznak (nyílt végpont, &lt; vagy &gt;).<br>
       A <b>∞</b> (végtelen) nem szám, ezért a végtelen felőli oldalon mindig nyílt a zárójel.</p>
+      <div class="theory-ops" id="theoryOps"></div>
     </div>
   </details>
 
@@ -124,6 +150,7 @@
     <button data-m="read">👀 Leolvasás</button>
     <button data-m="rel2int">Reláció → intervallum</button>
     <button data-m="int2rel">Intervallum → reláció</button>
+    <button data-m="setops">∪&nbsp;∩&nbsp;Halmazműveletek</button>
     <button data-m="mixed">🎲 Vegyes</button>
   </nav>
 
@@ -151,7 +178,7 @@ const NS = 'http://www.w3.org/2000/svg';
 const S = {
   mode: 'draw', type: 'draw', notation: 'paren', task: null, variant: null, showAsSet: false,
   answered: false, score: 0, total: 0, streak: 0,
-  draw: null, ib: null, lastKey: ''
+  draw: null, ibs: [], set: null, showAB: true, paint: null, wform: null, lastKey: ''
 };
 try { const n = localStorage.getItem('intv-notation'); if (n === 'paren' || n === 'rev') S.notation = n; } catch (e) {}
 
@@ -262,6 +289,15 @@ function miniLine(I) {
   return svg;
 }
 function renderTheory() {
+  const A = { a: -2, b: 3, ac: true, bc: true }, B = { a: 1, b: 5, ac: false, bc: false };
+  const r = k => fmtSetC(computeSet([-2, 3, 1, 5], x => OPS[k].fn(inI(A, x), inI(B, x))));
+  $('theoryOps').innerHTML = `<b>Halmazműveletek</b> – példa: A = ${esc(fmtInt(A))}, B = ${esc(fmtInt(B))}
+    <ul>
+      <li><b>Unió</b> (A ∪ B): A-nak <i>vagy</i> B-nek eleme → ${esc(r('u'))}</li>
+      <li><b>Metszet</b> (A ∩ B): A-nak <i>és</i> B-nek is eleme → ${esc(r('i'))}</li>
+      <li><b>Különbség</b> (A \\ B): A-nak eleme, de B-nek <i>nem</i> → ${esc(r('d'))}</li>
+      <li><b>Különbség</b> (B \\ A): B-nek eleme, de A-nak <i>nem</i> → ${esc(r('d2'))}</li>
+    </ul>`;
   const tb = $('theoryRows'); tb.innerHTML = '';
   NAMES.forEach(([I, name]) => {
     const tr = document.createElement('tr');
@@ -272,13 +308,17 @@ function renderTheory() {
 }
 
 /* ---------- tasks ---------- */
-const TYPE_LABEL = { draw: 'Ábrázolás számegyenesen', read: 'Leolvasás számegyenesről', rel2int: 'Relációs jelekből intervallum', int2rel: 'Intervallumból relációs jelek' };
+const TYPE_LABEL = { draw: 'Ábrázolás számegyenesen', read: 'Leolvasás számegyenesről', rel2int: 'Relációs jelekből intervallum', int2rel: 'Intervallumból relációs jelek', setops: 'Halmazműveletek intervallumokkal' };
 
 function newTask() {
-  let I, k, guard = 0;
-  do { I = genInterval(); k = keyOf(I); } while (k === S.lastKey && guard++ < 20);
-  S.lastKey = k; S.task = I; S.answered = false;
-  S.type = S.mode === 'mixed' ? ['draw', 'read', 'rel2int', 'int2rel'][ri(0, 3)] : S.mode;
+  S.answered = false;
+  S.type = S.mode === 'mixed' ? ['draw', 'read', 'rel2int', 'int2rel', 'setops'][ri(0, 4)] : S.mode;
+  if (S.type === 'setops') { S.set = genSetTask(); S.task = null; }
+  else {
+    let I, k, guard = 0;
+    do { I = genInterval(); k = keyOf(I); } while (k === S.lastKey && guard++ < 20);
+    S.lastKey = k; S.task = I; S.set = null;
+  }
   S.variant = Math.random() < 0.25 ? 'rev' : 'std';
   S.showAsSet = S.type === 'draw' && Math.random() < 0.35;
   $('taskTag').textContent = TYPE_LABEL[S.type];
@@ -289,8 +329,9 @@ function newTask() {
 
 function renderTask() {
   const I = S.task, P = $('prompt'), W = $('work');
-  P.innerHTML = ''; W.innerHTML = '';
-  if (S.type === 'draw') {
+  P.innerHTML = ''; W.innerHTML = ''; S.ibs = [];
+  if (S.type === 'setops') renderSetTask(P, W);
+  else if (S.type === 'draw') {
     if (S.showAsSet) P.innerHTML = `<p class="q">Ábrázold a számegyenesen a következő számhalmazt!</p><div class="big set">${esc(fmtSet(I, S.variant))}</div>`;
     else P.innerHTML = `<p class="q">Ábrázold a számegyenesen az alábbi intervallumot!</p><div class="big">${esc(fmtInt(I))}</div>`;
     S.draw = { pts: [], infL: false, infR: false, tool: true };
@@ -298,10 +339,10 @@ function renderTask() {
   } else if (S.type === 'read') {
     P.innerHTML = `<p class="q">Írd fel intervallumként a számegyenesen ábrázolt számhalmazt!</p>`;
     P.appendChild(staticLine(I));
-    buildIB(W);
+    createIB(W).focus(); W.insertAdjacentHTML('beforeend', IB_HINT);
   } else if (S.type === 'rel2int') {
     P.innerHTML = `<p class="q">Írd fel intervallum alakban a következő számhalmazt!</p><div class="big set">${esc(fmtSet(I, S.variant))}</div>`;
-    buildIB(W);
+    createIB(W).focus(); W.insertAdjacentHTML('beforeend', IB_HINT);
   } else {
     P.innerHTML = `<p class="q">Írd fel relációs jelek segítségével az alábbi intervallumot!</p><div class="big">${esc(fmtInt(I))}</div>`;
     buildRel(W);
@@ -388,42 +429,307 @@ function readDraw() {
 }
 
 /* ---- interval builder ---- */
-function buildIB(W) {
-  S.ib = { lc: true, rc: true, infA: false, infB: false };
-  W.innerHTML = `
-    <div class="builder">
-      <button class="br" id="ibL" title="Kattints a zárójel váltásához"></button>
-      <div class="end"><input id="ibA" inputmode="decimal" autocomplete="off" placeholder="?"><button class="infbtn" id="ibAinf">−∞</button></div>
+const IB_HINT = '<p class="hint">Kattints a zárójelre a típusa váltásához. Ha nincs határ, nyomd meg a −∞ vagy ∞ gombot.</p>';
+function createIB(host, small) {
+  const s = { lc: true, rc: true, infA: false, infB: false };
+  const box = document.createElement('div');
+  box.className = 'builder' + (small ? ' sm' : '');
+  box.innerHTML = `
+      <button class="br bL" title="Kattints a zárójel váltásához"></button>
+      <div class="end"><input class="iA" inputmode="decimal" autocomplete="off" placeholder="?"><button class="infbtn nA">−∞</button></div>
       <span class="semi">;</span>
-      <div class="end"><input id="ibB" inputmode="decimal" autocomplete="off" placeholder="?"><button class="infbtn" id="ibBinf">∞</button></div>
-      <button class="br" id="ibR" title="Kattints a zárójel váltásához"></button>
+      <div class="end"><input class="iB" inputmode="decimal" autocomplete="off" placeholder="?"><button class="infbtn nB">∞</button></div>
+      <button class="br bR" title="Kattints a zárójel váltásához"></button>`;
+  host.appendChild(box);
+  const q = c => box.querySelector(c);
+  const L = q('.bL'), R = q('.bR'), A = q('.iA'), B = q('.iB'), NA = q('.nA'), NB = q('.nB');
+  function render() {
+    L.textContent = s.lc ? '[' : openL();
+    R.textContent = s.rc ? ']' : openR();
+    L.disabled = s.infA || S.answered; R.disabled = s.infB || S.answered;
+    A.disabled = s.infA || S.answered; B.disabled = s.infB || S.answered;
+    NA.disabled = NB.disabled = S.answered;
+    if (s.infA) A.value = '−∞';
+    if (s.infB) B.value = '∞';
+    NA.classList.toggle('on', s.infA); NB.classList.toggle('on', s.infB);
+  }
+  L.onclick = () => { if (!S.answered && !s.infA) { s.lc = !s.lc; render(); } };
+  R.onclick = () => { if (!S.answered && !s.infB) { s.rc = !s.rc; render(); } };
+  NA.onclick = () => { if (S.answered) return; s.infA = !s.infA; if (s.infA) s.lc = false; A.value = ''; render(); };
+  NB.onclick = () => { if (S.answered) return; s.infB = !s.infB; if (s.infB) s.rc = false; B.value = ''; render(); };
+  function read(pre) {
+    pre = pre || ''; let a = null, b = null;
+    if (!s.infA) { a = parseNum(A.value); if (a === null) return { err: pre + 'Add meg a bal végpontot (vagy válaszd a −∞-t)!' }; }
+    if (!s.infB) { b = parseNum(B.value); if (b === null) return { err: pre + 'Add meg a jobb végpontot (vagy válaszd a ∞-t)!' }; }
+    if (s.infA && s.infB) return { err: pre + 'Mindkét oldal végtelen – ez az összes valós szám lenne. Legalább egy végpontot adj meg!' };
+    if (a !== null && b !== null && a >= b) return { err: pre + 'A bal oldali végpont legyen kisebb, mint a jobb oldali!' };
+    return { a, b, ac: s.infA ? false : s.lc, bc: s.infB ? false : s.rc };
+  }
+  const o = { render, read, focus() { setTimeout(() => { try { A.focus({ preventScroll: true }); } catch (e) {} }, 30); } };
+  S.ibs.push(o); render();
+  return o;
+}
+
+/* ---------- halmazműveletek ---------- */
+const inI = (I, x) => (I.a === null || x > I.a || (x === I.a && I.ac)) && (I.b === null || x < I.b || (x === I.b && I.bc));
+const isPt = c => c.a !== null && c.a === c.b;
+// items: gap, pt, gap, pt, ..., gap  (each with .in, pt with .v) -> list of disjoint components
+function itemsToSet(items) {
+  const comps = []; let cur = null;
+  const close = j => {
+    const it = items[j];
+    if (it.kind === 'pt') { cur.b = it.v; cur.bc = true; }
+    else if (j === items.length - 1) { cur.b = null; cur.bc = false; }
+    else { cur.b = items[j + 1].v; cur.bc = false; }
+    comps.push(cur); cur = null;
+  };
+  items.forEach((it, i) => {
+    if (it.in) {
+      if (!cur) cur = it.kind === 'pt' ? { a: it.v, ac: true } : (i === 0 ? { a: null, ac: false } : { a: items[i - 1].v, ac: false });
+    } else if (cur) close(i - 1);
+  });
+  if (cur) close(items.length - 1);
+  return comps;
+}
+function computeSet(points, member) {
+  const ps = [...new Set(points)].sort((a, b) => a - b), items = [];
+  items.push({ kind: 'gap', in: member(ps[0] - 1) });
+  ps.forEach((p, i) => {
+    items.push({ kind: 'pt', v: p, in: member(p) });
+    const nx = ps[i + 1];
+    items.push({ kind: 'gap', in: member(nx === undefined ? p + 1 : (p + nx) / 2) });
+  });
+  return itemsToSet(items);
+}
+const finite = list => list.flatMap(c => [c.a, c.b]).filter(v => v !== null);
+const normalize = comps => comps.length ? computeSet(finite(comps), x => comps.some(c => inI(c, x))) : [];
+const setEq = (P, Q) => P.length === Q.length && P.every((c, i) => eq(c, Q[i]));
+const fmtComp = c => isPt(c) ? `{ ${fmtNum(c.a)} }` : fmtInt(c);
+function fmtSetC(comps) {
+  if (!comps.length) return '∅';
+  return comps.map(fmtComp).join(' ∪ ');
+}
+const OPS = {
+  u:  { expr: 'A ∪ B', art: 'az', name: 'unió',      fn: (a, b) => a || b,  hint: 'Az A ∪ B unióba azok a számok tartoznak, amelyek A-nak VAGY B-nek (legalább az egyiknek) elemei.' },
+  i:  { expr: 'A ∩ B', art: 'az', name: 'metszet',   fn: (a, b) => a && b,  hint: 'Az A ∩ B metszetbe azok a számok tartoznak, amelyek A-nak ÉS B-nek is elemei – ahol a két ábra „fedi” egymást.' },
+  d:  { expr: 'A \\ B', art: 'az', name: 'különbség', fn: (a, b) => a && !b, hint: 'Az A \\ B különbségbe azok a számok tartoznak, amelyek A-nak elemei, de B-nek NEM. Ahol B végpontja zárt volt, ott az eredmény végpontja nyílt lesz, és fordítva.' },
+  d2: { expr: 'B \\ A', art: 'a',  name: 'különbség', fn: (a, b) => b && !a, hint: 'A B \\ A különbségbe azok a számok tartoznak, amelyek B-nek elemei, de A-nak NEM. Ahol A végpontja zárt volt, ott az eredmény végpontja nyílt lesz, és fordítva.' }
+};
+function genSetTask() {
+  for (let t = 0; t < 400; t++) {
+    const A = genInterval();
+    let B = genInterval();
+    // gyakrabban legyen átfedés vagy érintkezés
+    if (Math.random() < 0.6 && A.a !== null && B.a !== null && A.b !== null) {
+      const len = B.b === null ? null : B.b - B.a;
+      B.a = ri(Math.max(-8, A.a - 2), Math.min(7, A.b));
+      if (len !== null) B.b = Math.min(8, B.a + Math.max(1, len));
+      if (B.b !== null && B.b <= B.a) continue;
+    }
+    if (eq(A, B)) continue;
+    const opKey = ['u', 'i', 'd', 'd2', 'u', 'i'][ri(0, 5)];
+    const op = OPS[opKey];
+    const R = computeSet(finite([A, B]), x => op.fn(inI(A, x), inI(B, x)));
+    if (R.some(c => c.a === null && c.b === null)) continue;           // ℝ
+    if (R.length > 2) continue;
+    const deg = R.filter(isPt).length;
+    if (deg && !(R.length === 1 && opKey === 'i')) continue;            // pontot csak metszetként
+    if (deg && Math.random() < 0.6) continue;                           // {a} ritkán
+    if (!R.length && Math.random() < 0.7) continue;                     // ∅ ritkán
+    const key = fmtInt(A) + fmtInt(B) + opKey;
+    if (key === S.lastKey) continue;
+    S.lastKey = key;
+    return { A, B, op: opKey, R };
+  }
+  return { A: { a: -3, b: 4, ac: true, bc: false }, B: { a: 1, b: 6, ac: false, bc: true }, op: 'i', R: [{ a: 1, b: 4, ac: false, bc: false }] };
+}
+function setLine(comps, color, label, lcolor) {
+  const svg = newSvg(); baseLine(svg);
+  comps.forEach(c => isPt(c) ? point(svg, c.a, true, color) : drawInterval(svg, c, color));
+  const w = document.createElement('div'); w.className = 'nlwrap'; w.appendChild(svg);
+  if (!label) return w;
+  const row = document.createElement('div'); row.className = 'nlrow';
+  row.innerHTML = `<span class="nllab" style="color:${lcolor || color}">${esc(label)}</span>`;
+  row.appendChild(w); return row;
+}
+function refreshSetTexts() {
+  document.querySelectorAll('[data-set]').forEach(e => { e.textContent = fmtSetC(JSON.parse(e.dataset.set)); });
+}
+const setSpan = comps => `<span data-set='${JSON.stringify(comps)}'></span>`;
+
+function renderSetTask(P, W) {
+  const t = S.set, op = OPS[t.op];
+  P.innerHTML = `<p class="q">Legyen <b>A = ${setSpan([t.A])}</b> és <b>B = ${setSpan([t.B])}</b>.</p>
+    <div class="big">${op.expr} = ?</div>
+    <div class="abbox${S.showAB ? '' : ' hidden'}" id="abbox"></div>
+    <label class="abtoggle"><input type="checkbox" id="abChk"${S.showAB ? ' checked' : ''}> A és B ábrája</label>`;
+  const ab = $('abbox');
+  ab.appendChild(setLine([t.A], '#2563eb', 'A'));
+  ab.appendChild(setLine([t.B], '#ea580c', 'B'));
+  $('abChk').onchange = e => { S.showAB = e.target.checked; ab.classList.toggle('hidden', !S.showAB); };
+  W.innerHTML = `
+    <div class="sect"><h4>1. Ábrázold ${op.art} ${esc(op.expr)} halmazt a számegyenesen!</h4>
+      <div class="tools" id="ptools">
+        <button data-t="line"><span style="display:inline-block;width:22px;height:6px;background:${COLOR};border-radius:3px"></span>Satírozás</button>
+        <button data-t="c"><span class="dot f"></span>Tele karika</button>
+        <button data-t="o"><span class="dot"></span>Üres karika</button>
+        <button data-t="erase">🧽 Radír</button>
+        <button data-t="clear">🗑 Törlés</button>
+      </div>
+      <div id="paintBox"></div>
+      <p class="hint">Satírozd be (kattintással vagy húzással) a halmazhoz tartozó szakaszokat – a széleken a végtelen felé is –, majd a végpontokat jelöld tele vagy üres karikával. Ha a halmaz üres, hagyd üresen.</p>
     </div>
-    <p class="hint">Kattints a zárójelre a típusa váltásához. Ha nincs határ, nyomd meg a −∞ vagy ∞ gombot.</p>`;
-  $('ibL').onclick = () => { if (!S.answered && !S.ib.infA) { S.ib.lc = !S.ib.lc; renderIB(); } };
-  $('ibR').onclick = () => { if (!S.answered && !S.ib.infB) { S.ib.rc = !S.ib.rc; renderIB(); } };
-  $('ibAinf').onclick = () => { if (S.answered) return; S.ib.infA = !S.ib.infA; if (S.ib.infA) S.ib.lc = false; $('ibA').value = ''; renderIB(); };
-  $('ibBinf').onclick = () => { if (S.answered) return; S.ib.infB = !S.ib.infB; if (S.ib.infB) S.ib.rc = false; $('ibB').value = ''; renderIB(); };
-  renderIB();
-  setTimeout(() => { try { $('ibA').focus({ preventScroll: true }); } catch (e) {} }, 30);
+    <div class="sect"><h4>2. Írd fel ${op.art} ${esc(op.expr)} halmazt!</h4>
+      <div class="forms" id="forms">
+        <button data-f="int">Intervallum</button>
+        <button data-f="union">Két intervallum uniója</button>
+        <button data-f="point">Egyelemű halmaz { a }</button>
+        <button data-f="empty">Üres halmaz <span class="es">∅</span></button>
+      </div>
+      <div id="formHost"><p class="hint">Először válaszd ki, milyen alakú a halmaz.</p></div>
+    </div>`;
+  refreshSetTexts();
+  S.paint = { gaps: new Array(22).fill(false), pts: {}, tool: 'line', drag: null };
+  S.wform = null;
+  buildPaint();
+  $('forms').addEventListener('click', e => { const b = e.target.closest('button'); if (b && !S.answered) setForm(b.dataset.f); });
 }
-function renderIB() {
-  const s = S.ib;
-  $('ibL').textContent = s.lc ? '[' : openL();
-  $('ibR').textContent = s.rc ? ']' : openR();
-  $('ibL').disabled = s.infA || S.answered; $('ibR').disabled = s.infB || S.answered;
-  const A = $('ibA'), B = $('ibB');
-  A.disabled = s.infA || S.answered; B.disabled = s.infB || S.answered;
-  if (s.infA) A.value = '−∞';
-  if (s.infB) B.value = '∞';
-  $('ibAinf').classList.toggle('on', s.infA); $('ibBinf').classList.toggle('on', s.infB);
+
+/* satírozós számegyenes */
+function buildPaint() {
+  const svg = newSvg(); svg.classList.add('paint');
+  const wrap = document.createElement('div'); wrap.className = 'nlwrap'; wrap.appendChild(svg);
+  $('paintBox').appendChild(wrap);
+  const P = S.paint;
+  const sx = ev => { const pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY; return pt.matrixTransform(svg.getScreenCTM().inverse()).x; };
+  const gapAt = x => Math.max(-1, Math.min(20, Math.floor((x - 40) / 34)));
+  const tickAt = x => { const v = Math.round((x - 40) / 34) + MIN; return v >= MIN && v <= MAX ? v : null; };
+  svg.addEventListener('pointerdown', ev => {
+    if (S.answered) return;
+    ev.preventDefault();
+    const x = sx(ev);
+    if (P.tool === 'line') {
+      const k = gapAt(x); const val = !P.gaps[k + 1]; P.gaps[k + 1] = val; P.drag = val;
+    } else if (P.tool === 'c' || P.tool === 'o') {
+      const v = tickAt(x); if (v === null) return;
+      if (P.pts[v] === P.tool) delete P.pts[v]; else P.pts[v] = P.tool;
+    } else if (P.tool === 'erase') {
+      const v = tickAt(x);
+      if (v !== null && Math.abs(x - X(v)) < 11 && P.pts[v]) delete P.pts[v];
+      else { P.gaps[gapAt(x) + 1] = false; P.drag = false; }
+    }
+    if (P.drag !== null) { try { svg.setPointerCapture(ev.pointerId); } catch (e) {} }
+    renderPaint();
+  });
+  svg.addEventListener('pointermove', ev => {
+    if (P.drag === null || S.answered) return;
+    const k = gapAt(sx(ev));
+    if (P.gaps[k + 1] !== P.drag) { P.gaps[k + 1] = P.drag; renderPaint(); }
+  });
+  const end = () => { P.drag = null; };
+  svg.addEventListener('pointerup', end); svg.addEventListener('pointercancel', end);
+  $('ptools').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b || S.answered) return;
+    if (b.dataset.t === 'clear') { P.gaps.fill(false); P.pts = {}; }
+    else P.tool = b.dataset.t;
+    renderPaint();
+  });
+  P.svg = svg;
+  renderPaint();
 }
-function readIB() {
-  const s = S.ib; let a = null, b = null;
-  if (!s.infA) { a = parseNum($('ibA').value); if (a === null) return { err: 'Add meg a bal végpontot (vagy válaszd a −∞-t)!' }; }
-  if (!s.infB) { b = parseNum($('ibB').value); if (b === null) return { err: 'Add meg a jobb végpontot (vagy válaszd a ∞-t)!' }; }
-  if (s.infA && s.infB) return { err: 'Mindkét oldal végtelen – ez az összes valós szám lenne. Legalább egy végpontot adj meg!' };
-  if (a !== null && b !== null && a >= b) return { err: 'A bal oldali végpont legyen kisebb, mint a jobb oldali!' };
-  return { a, b, ac: s.infA ? false : s.lc, bc: s.infB ? false : s.rc };
+function renderPaint() {
+  const P = S.paint, svg = P.svg;
+  document.querySelectorAll('#ptools button').forEach(b => b.classList.toggle('on', b.dataset.t === P.tool));
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  baseLine(svg);
+  for (let k = -1; k <= 20; k++) {
+    if (!P.gaps[k + 1]) continue;
+    const x1 = k === -1 ? 26 : X(k - 10), x2 = k === 20 ? 726 : X(k - 9);
+    el('line', { x1, y1: Y, x2, y2: Y, stroke: COLOR, 'stroke-width': 7, opacity: .85 }, svg);
+    if (k === -1) el('polygon', { points: `${x1 - 12},${Y} ${x1 + 1},${Y - 10} ${x1 + 1},${Y + 10}`, fill: COLOR }, svg);
+    if (k === 20) el('polygon', { points: `${x2 + 12},${Y} ${x2 - 1},${Y - 10} ${x2 - 1},${Y + 10}`, fill: COLOR }, svg);
+  }
+  for (const v in P.pts) point(svg, +v, P.pts[v] === 'c', COLOR);
+  el('rect', { x: 0, y: 0, width: 760, height: 92, fill: 'transparent' }, svg);
+}
+function readPaint() {
+  const P = S.paint, g = P.gaps, items = [];
+  let err = null;
+  for (let v = MIN; v <= MAX; v++) {
+    const L = g[v + 10], R = g[v + 11], c = P.pts[v];
+    items.push({ kind: 'gap', in: L });
+    let inn;
+    if (c === 'c') inn = true;
+    else if (c === 'o') inn = false;
+    else if (L && R) inn = true;
+    else if (L || R) { inn = false; if (!err) err = `${art(v) === 'az' ? 'Az' : 'A'} ${fmtNum(v)} pontnál véget ér a satírozás – jelöld tele vagy üres karikával, hogy hozzátartozik-e a halmazhoz!`; }
+    else inn = false;
+    items.push({ kind: 'pt', v, in: inn });
+  }
+  items.push({ kind: 'gap', in: g[21] });
+  if (err) return { err };
+  return { comps: itemsToSet(items) };
+}
+
+/* felírás */
+function setForm(f) {
+  S.wform = f; S.ibs = [];
+  document.querySelectorAll('#forms button').forEach(b => b.classList.toggle('on', b.dataset.f === f));
+  const host = $('formHost'); host.innerHTML = '';
+  if (f === 'int') { createIB(host).focus(); host.insertAdjacentHTML('beforeend', IB_HINT); }
+  else if (f === 'union') {
+    const row = document.createElement('div'); row.className = 'unionRow'; host.appendChild(row);
+    const first = createIB(row, true);
+    row.insertAdjacentHTML('beforeend', '<span class="cup">∪</span>');
+    createIB(row, true); first.focus();
+    host.insertAdjacentHTML('beforeend', '<p class="hint">Balra írd a kisebb számokat tartalmazó intervallumot.</p>');
+  } else if (f === 'point') {
+    host.innerHTML = '<div class="builder"><span style="font-size:2.2rem">{</span><div class="end"><input id="ptIn" inputmode="decimal" autocomplete="off" placeholder="?"></div><span style="font-size:2.2rem">}</span></div>';
+    setTimeout(() => { try { $('ptIn').focus({ preventScroll: true }); } catch (e) {} }, 30);
+  } else host.innerHTML = '<div class="emptyset">∅</div><p class="hint">Üres halmaz: nincs olyan szám, amely a feltételnek megfelel.</p>';
+}
+function lockWrite() {
+  document.querySelectorAll('#forms button').forEach(b => b.disabled = S.answered);
+  S.ibs.forEach(o => o.render());
+  if ($('ptIn')) $('ptIn').disabled = S.answered;
+}
+function readWrite() {
+  if (!S.wform) return { err: 'Válaszd ki, milyen alakú a halmaz (intervallum, két intervallum uniója, egyelemű vagy üres halmaz)!' };
+  let comps;
+  if (S.wform === 'int') { const r = S.ibs[0].read(); if (r.err) return r; comps = [r]; }
+  else if (S.wform === 'union') {
+    const r1 = S.ibs[0].read('Első intervallum: '); if (r1.err) return r1;
+    const r2 = S.ibs[1].read('Második intervallum: '); if (r2.err) return r2;
+    comps = [r1, r2];
+  } else if (S.wform === 'point') {
+    const v = parseNum($('ptIn').value); if (v === null) return { err: 'Írd be a halmaz egyetlen elemét!' };
+    comps = [{ a: v, b: v, ac: true, bc: true }];
+  } else comps = [];
+  return { comps: normalize(comps), raw: comps.length };
+}
+function checkSet() {
+  const fb = $('fb');
+  const p = readPaint();
+  if (p.err) { fb.className = 'fb warn'; fb.innerHTML = `<h3>Figyelem! (ábrázolás)</h3>${esc(p.err)}`; return; }
+  const w = readWrite();
+  if (w.err) { fb.className = 'fb warn'; fb.innerHTML = `<h3>Figyelem! (felírás)</h3>${esc(w.err)}`; return; }
+  const t = S.set, op = OPS[t.op], R = t.R;
+  const ok1 = setEq(p.comps, R), ok2 = setEq(w.comps, R), ok = ok1 && ok2;
+  S.total++; if (ok) { S.score++; S.streak++; } else S.streak = 0;
+  S.answered = true;
+  const mark = b => b ? '<span class="ok-i">✔ helyes</span>' : '<span class="bad-i">✘ hibás</span>';
+  let html = ok
+    ? `<h3>✔ ${['Helyes!', 'Szuper!', 'Ügyes!', 'Pontosan!', 'Kiváló!'][ri(0, 4)]}${S.streak >= 3 ? ` ${S.streak} helyes válasz egymás után! 🔥` : ''}</h3>`
+    : `<h3>✘ Nem jó.</h3><ul><li>Ábrázolás: ${mark(ok1)}</li><li>Felírás: ${mark(ok2)}</li></ul><p>${esc(op.hint)}</p>`;
+  if (ok2 && w.raw > R.length) html += `<p>Tipp: ez egyszerűbben, egyetlen intervallumként is felírható.</p>`;
+  html += `<div class="ans">Helyes válasz: <b>${esc(op.expr)} = ${setSpan(R)}</b></div>`;
+  fb.className = ok ? 'fb ok' : 'fb bad';
+  fb.innerHTML = html;
+  fb.appendChild(setLine(R, '#15803d', op.expr, '#15803d'));
+  refreshSetTexts();
+  renderPaint(); lockWrite();
+  $('checkBtn').textContent = 'Következő feladat →';
+  renderScore();
 }
 
 /* ---- relation builder ---- */
@@ -498,8 +804,9 @@ function hints(st, co, kind) {
 }
 function check() {
   if (S.answered) { newTask(); return; }
+  if (S.type === 'setops') { checkSet(); return; }
   const kind = S.type === 'draw' ? 'draw' : S.type === 'int2rel' ? 'rel' : 'ib';
-  const st = kind === 'draw' ? readDraw() : kind === 'rel' ? readRel() : readIB();
+  const st = kind === 'draw' ? readDraw() : kind === 'rel' ? readRel() : S.ibs[0].read();
   const fb = $('fb');
   if (st.err) { fb.className = 'fb warn'; fb.innerHTML = `<h3>Figyelem!</h3>${esc(st.err)}`; return; }
   const co = S.task, ok = eq(st, co);
@@ -517,7 +824,7 @@ function check() {
     fb.innerHTML = `<h3>✘ Nem jó.</h3>${h.length ? '<ul>' + h.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' : ''}${ans}`;
     fb.appendChild(staticLine(co, '#15803d'));
   }
-  if (kind === 'draw') renderDraw(); else if (kind === 'ib') renderIB(); else renderRel();
+  if (kind === 'draw') renderDraw(); else if (kind === 'ib') S.ibs.forEach(o => o.render()); else renderRel();
   $('checkBtn').textContent = 'Következő feladat →';
   renderScore();
 }
@@ -536,13 +843,14 @@ function setNotation(n) {
   try { localStorage.setItem('intv-notation', n); } catch (e) {}
   document.querySelectorAll('#notSeg button').forEach(b => b.classList.toggle('on', b.dataset.n === n));
   renderTheory();
+  // a szövegek frissítése a tanuló munkájának elvesztése nélkül
   if (S.task) {
-    // re-render text without losing the student's work
     const big = document.querySelector('#prompt .big:not(.set)');
     if (big) big.textContent = fmtInt(S.task);
-    if (S.ib && document.getElementById('ibL')) renderIB();
     if (S.answered) { const a = document.querySelector('#fb .ans b'); if (a) a.textContent = fmtInt(S.task); }
   }
+  S.ibs.forEach(o => o.render());
+  refreshSetTexts();
 }
 $('tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setMode(b.dataset.m); });
 $('notSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setNotation(b.dataset.n); });
