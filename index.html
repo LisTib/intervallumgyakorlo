@@ -64,6 +64,10 @@
   .end input:disabled{background:#f3f0ff;color:var(--acc)}
   .infbtn{border:1px solid var(--line);background:#fff;border-radius:8px;font:inherit;font-size:.85rem;font-weight:700;padding:3px 10px;cursor:pointer;color:var(--muted)}
   .infbtn.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+  .eb{display:flex;gap:4px}
+  .infbtn.sg{font-size:.95rem;padding:2px 10px}
+  .infbtn:disabled{opacity:.45;cursor:default}
+  .rel .end{gap:4px}
   .semi{font-size:2rem;padding:0 2px}
   .rel{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin:16px 0 4px;font-size:1.6rem;font-weight:800}
   .rel select{height:52px;border:2px solid var(--line);border-radius:10px;font:inherit;font-size:1.45rem;font-weight:800;padding:0 6px;background:#fff;color:var(--acc);cursor:pointer}
@@ -436,9 +440,9 @@ function createIB(host, small) {
   box.className = 'builder' + (small ? ' sm' : '');
   box.innerHTML = `
       <button class="br bL" title="Kattints a zárójel váltásához"></button>
-      <div class="end"><input class="iA" inputmode="decimal" autocomplete="off" placeholder="?"><button class="infbtn nA">−∞</button></div>
+      <div class="end"><input class="iA" inputmode="decimal" autocomplete="off" placeholder="?"><div class="eb"><button class="infbtn sg" title="Előjelváltás (negatív szám)">±</button><button class="infbtn nA">−∞</button></div></div>
       <span class="semi">;</span>
-      <div class="end"><input class="iB" inputmode="decimal" autocomplete="off" placeholder="?"><button class="infbtn nB">∞</button></div>
+      <div class="end"><input class="iB" inputmode="decimal" autocomplete="off" placeholder="?"><div class="eb"><button class="infbtn sg" title="Előjelváltás (negatív szám)">±</button><button class="infbtn nB">∞</button></div></div>
       <button class="br bR" title="Kattints a zárójel váltásához"></button>`;
   host.appendChild(box);
   const q = c => box.querySelector(c);
@@ -449,6 +453,7 @@ function createIB(host, small) {
     L.disabled = s.infA || S.answered; R.disabled = s.infB || S.answered;
     A.disabled = s.infA || S.answered; B.disabled = s.infB || S.answered;
     NA.disabled = NB.disabled = S.answered;
+    syncSigns(box);
     if (s.infA) A.value = '−∞';
     if (s.infB) B.value = '∞';
     NA.classList.toggle('on', s.infA); NB.classList.toggle('on', s.infB);
@@ -710,14 +715,14 @@ function setForm(f) {
     createIB(row, true); first.focus();
     host.insertAdjacentHTML('beforeend', '<p class="hint">Balra írd a kisebb számokat tartalmazó intervallumot.</p>');
   } else if (f === 'point') {
-    host.innerHTML = '<div class="builder"><span style="font-size:2.2rem">{</span><div class="end"><input id="ptIn" inputmode="decimal" autocomplete="off" placeholder="?"></div><span style="font-size:2.2rem">}</span></div>';
+    host.innerHTML = '<div class="builder"><span style="font-size:2.2rem">{</span><div class="end"><input id="ptIn" inputmode="decimal" autocomplete="off" placeholder="?"><button class="infbtn sg" title="Előjelváltás (negatív szám)">±</button></div><span style="font-size:2.2rem">}</span></div>';
     setTimeout(() => { try { $('ptIn').focus({ preventScroll: true }); } catch (e) {} }, 30);
   } else host.innerHTML = '<div class="emptyset">∅</div><p class="hint">Üres halmaz: nincs olyan szám, amely a feltételnek megfelel.</p>';
 }
 function lockWrite() {
   document.querySelectorAll('#forms button').forEach(b => b.disabled = S.answered);
   S.ibs.forEach(o => o.render());
-  if ($('ptIn')) $('ptIn').disabled = S.answered;
+  if ($('ptIn')) { $('ptIn').disabled = S.answered; syncSigns($('formHost')); }
 }
 function readWrite() {
   if (!S.wform) return { err: 'Válaszd ki, milyen alakú a halmaz (intervallum, két intervallum uniója, egyelemű vagy üres halmaz)!' };
@@ -763,11 +768,11 @@ const RELOPTS = '<option value="">—</option><option value="lt">&lt;</option><o
 function buildRel(W) {
   W.innerHTML = `
     <div class="rel">
-      <input id="rA" inputmode="decimal" autocomplete="off" placeholder="?">
+      <div class="end"><input id="rA" inputmode="decimal" autocomplete="off" placeholder="?"><button class="infbtn sg" title="Előjelváltás (negatív szám)">±</button></div>
       <select id="r1">${RELOPTS}</select>
       <span class="x">x</span>
       <select id="r2">${RELOPTS}</select>
-      <input id="rB" inputmode="decimal" autocomplete="off" placeholder="?">
+      <div class="end"><input id="rB" inputmode="decimal" autocomplete="off" placeholder="?"><button class="infbtn sg" title="Előjelváltás (negatív szám)">±</button></div>
     </div>
     <div class="preview" id="relPrev"></div>
     <p class="hint">Ha az egyik oldalon nincs feltétel, ott hagyd a „—” jelet. Pl. x ≥ 2: a bal oldalon „—”, jobbra „≥ 2”.</p>`;
@@ -779,6 +784,7 @@ function renderRel() {
   const r1 = $('r1').value, r2 = $('r2').value;
   $('rA').disabled = !r1 || S.answered; $('rB').disabled = !r2 || S.answered;
   $('r1').disabled = $('r2').disabled = S.answered;
+  syncSigns(document.querySelector('.rel'));
   if (!r1) $('rA').value = ''; if (!r2) $('rB').value = '';
   let t = '';
   if (r1) t += ($('rA').value.trim() || '?') + ' ' + RELSYM[r1] + ' ';
@@ -857,6 +863,21 @@ function check() {
 function renderScore() {
   $('score').innerHTML = `Pont: <b>${S.score} / ${S.total}</b>${S.streak >= 2 ? ` · Sorozat: <b>${S.streak}</b> 🔥` : ''}`;
 }
+
+/* ---------- előjelváltó (±) gomb – a mobil számbillentyűzeten nincs mínuszjel ---------- */
+function syncSigns(root) {
+  if (!root) return;
+  root.querySelectorAll('.sg').forEach(b => { const i = b.closest('.end').querySelector('input'); b.disabled = !i || i.disabled; });
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('.sg'); if (!b || b.disabled) return;
+  e.preventDefault();
+  const i = b.closest('.end').querySelector('input'); if (!i || i.disabled) return;
+  const v = i.value.trim();
+  i.value = /^[-−]/.test(v) ? v.replace(/^[-−]\s*/, '') : '−' + v;
+  i.dispatchEvent(new Event('input', { bubbles: true }));
+  try { i.focus({ preventScroll: true }); const n = i.value.length; i.setSelectionRange(n, n); } catch (err) {}
+});
 
 /* ---------- wiring ---------- */
 function setMode(m) {
