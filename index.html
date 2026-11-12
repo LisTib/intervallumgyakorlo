@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Intervallumgyakorló</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --acc:#6d28d9; --acc2:#7c3aed; --accl:#ede9fe; --bg:#f6f3ff;
+    --ink:#1e1b2e; --muted:#6b6880; --ok:#15803d; --okl:#dcfce7; --bad:#b91c1c; --badl:#fee2e2;
+    --warn:#a16207; --warnl:#fef9c3; --line:#d9d3f0;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Nunito,system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.45}
+  header{background:linear-gradient(135deg,#5b21b6,#7c3aed 60%,#a78bfa);color:#fff;padding:26px 18px 30px;text-align:center}
+  header h1{margin:0 0 6px;font-size:2rem;font-weight:800;letter-spacing:.3px}
+  header p{margin:0;opacity:.92}
+  main{max-width:880px;margin:0 auto;padding:18px 14px 50px}
+  details.theory{background:#fff;border:1px solid var(--line);border-radius:14px;margin-bottom:14px;overflow:hidden}
+  details.theory summary{cursor:pointer;padding:12px 16px;font-weight:700;color:var(--acc)}
+  .theory-body{padding:0 14px 14px;overflow-x:auto}
+  table.th{border-collapse:collapse;width:100%;min-width:600px;font-size:.95rem}
+  table.th th,table.th td{border-bottom:1px solid #eee;padding:6px 8px;text-align:left;vertical-align:middle}
+  table.th th{color:var(--muted);font-weight:700;font-size:.85rem}
+  table.th td.nt{font-weight:800;font-size:1.05rem;white-space:nowrap}
+  .theory-note{margin:10px 2px 0;color:var(--muted);font-size:.92rem}
+  .settings{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 12px;font-size:.95rem;color:var(--muted)}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+  .seg button{border:0;background:#fff;padding:6px 12px;font:inherit;font-weight:700;cursor:pointer;color:var(--ink)}
+  .seg button.on{background:var(--acc);color:#fff}
+  nav.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  nav.tabs button{flex:1 1 150px;border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 8px;font:inherit;font-weight:700;cursor:pointer;color:var(--ink)}
+  nav.tabs button:hover{border-color:var(--acc2)}
+  nav.tabs button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px 18px 20px;box-shadow:0 4px 18px rgba(91,33,182,.07)}
+  .task-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+  .tag{background:var(--accl);color:var(--acc);border-radius:999px;padding:3px 12px;font-weight:700;font-size:.88rem}
+  .score{font-weight:700;color:var(--muted);font-size:.95rem}
+  .score b{color:var(--ink)}
+  .q{font-size:1.05rem;margin:6px 0 4px}
+  .big{font-size:2rem;font-weight:800;text-align:center;margin:10px 0 6px;color:var(--acc);letter-spacing:.5px}
+  .big.set{font-size:1.7rem}
+  svg.nl{width:100%;height:auto;display:block;user-select:none;-webkit-user-select:none}
+  .nlwrap{background:#fbfaff;border:1px solid #eee8ff;border-radius:12px;padding:6px 4px;margin:8px 0}
+  .hit{cursor:pointer}
+  .hit .ghost{opacity:0;transition:opacity .1s}
+  .hit:hover .ghost{opacity:.45}
+  .locked .hit{cursor:default}
+  .locked .hit:hover .ghost{opacity:0}
+  .tools{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:6px 0}
+  .tools button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 12px;font:inherit;font-weight:700;cursor:pointer;color:var(--ink);display:inline-flex;align-items:center;gap:6px}
+  .tools button.on{background:var(--accl);border-color:var(--acc2);color:var(--acc)}
+  .dot{display:inline-block;width:14px;height:14px;border-radius:50%;border:3px solid var(--acc2)}
+  .dot.f{background:var(--acc2)}
+  .hint{color:var(--muted);font-size:.9rem;text-align:center;margin:6px 0 0}
+  .builder{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin:16px 0 4px;font-size:1.6rem;font-weight:800}
+  .br{width:56px;height:64px;border:2px dashed var(--acc2);border-radius:12px;background:var(--accl);font:inherit;font-size:2.2rem;font-weight:800;color:var(--acc);cursor:pointer;line-height:1}
+  .br:disabled{border-style:solid;opacity:.75;cursor:not-allowed}
+  .end{display:flex;flex-direction:column;align-items:center;gap:4px}
+  .end input,.rel input{width:84px;height:52px;border:2px solid var(--line);border-radius:10px;font:inherit;font-size:1.45rem;font-weight:800;text-align:center;color:var(--ink)}
+  .end input:focus,.rel input:focus,.rel select:focus{outline:none;border-color:var(--acc2)}
+  .end input:disabled{background:#f3f0ff;color:var(--acc)}
+  .infbtn{border:1px solid var(--line);background:#fff;border-radius:8px;font:inherit;font-size:.85rem;font-weight:700;padding:3px 10px;cursor:pointer;color:var(--muted)}
+  .infbtn.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+  .semi{font-size:2rem;padding:0 2px}
+  .rel{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin:16px 0 4px;font-size:1.6rem;font-weight:800}
+  .rel select{height:52px;border:2px solid var(--line);border-radius:10px;font:inherit;font-size:1.45rem;font-weight:800;padding:0 6px;background:#fff;color:var(--acc);cursor:pointer}
+  .rel input:disabled{background:#f4f4f6;border-style:dashed}
+  .rel .x{font-style:italic;font-family:Georgia,serif;font-size:1.9rem;padding:0 4px}
+  .preview{text-align:center;color:var(--muted);font-size:1rem;margin-top:6px;min-height:1.4em}
+  .preview b{color:var(--ink)}
+  .actions{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}
+  .btn{border:0;border-radius:12px;padding:12px 22px;font:inherit;font-weight:800;font-size:1.05rem;cursor:pointer}
+  .btn.main{background:var(--acc);color:#fff}
+  .btn.main:hover{background:#5b21b6}
+  .btn.sec{background:#fff;border:1px solid var(--line);color:var(--ink)}
+  .fb{margin-top:16px;border-radius:12px;padding:12px 14px;display:none}
+  .fb.ok{display:block;background:var(--okl);border:1px solid #86efac}
+  .fb.bad{display:block;background:var(--badl);border:1px solid #fca5a5}
+  .fb.warn{display:block;background:var(--warnl);border:1px solid #fde047}
+  .fb h3{margin:0 0 4px;font-size:1.1rem}
+  .fb.ok h3{color:var(--ok)} .fb.bad h3{color:var(--bad)} .fb.warn h3{color:var(--warn)}
+  .fb ul{margin:4px 0 6px;padding-left:20px}
+  .fb .ans{font-size:1.15rem;margin:6px 0}
+  .fb .nlwrap{background:#fff}
+  footer{text-align:center;color:var(--muted);font-size:.85rem;margin-top:22px}
+  @media (max-width:560px){
+    header h1{font-size:1.6rem}
+    .big{font-size:1.6rem}.big.set{font-size:1.3rem}
+    .builder,.rel{font-size:1.3rem;gap:5px}
+    .br{width:44px;height:54px;font-size:1.8rem}
+    .end input,.rel input{width:64px;height:46px;font-size:1.2rem}
+    .rel select{height:46px;font-size:1.2rem}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Intervallumgyakorló</h1>
+  <p>Zárt és nyílt intervallumok felírása, ábrázolása számegyenesen, átírás relációs jelekkel</p>
+</header>
+<main>
+  <details class="theory">
+    <summary>📘 Emlékeztető – az intervallumok jelölése</summary>
+    <div class="theory-body">
+      <table class="th"><thead><tr><th>Intervallum</th><th>Relációs jelekkel</th><th>Számegyenesen</th><th>Megnevezés</th></tr></thead><tbody id="theoryRows"></tbody></table>
+      <p class="theory-note">● <b>Tele karika</b> = a végpont <b>eleme</b> a halmaznak (zárt végpont, ≤ vagy ≥, szögletes zárójel befelé).<br>
+      ○ <b>Üres karika</b> = a végpont <b>nem eleme</b> a halmaznak (nyílt végpont, &lt; vagy &gt;).<br>
+      A <b>∞</b> (végtelen) nem szám, ezért a végtelen felőli oldalon mindig nyílt a zárójel.</p>
+    </div>
+  </details>
+
+  <div class="settings">Nyílt végpont jelölése:
+    <span class="seg" id="notSeg">
+      <button data-n="paren">( a ; b )</button>
+      <button data-n="rev">] a ; b [</button>
+    </span>
+  </div>
+
+  <nav class="tabs" id="tabs">
+    <button data-m="draw">✏️ Ábrázolás</button>
+    <button data-m="read">👀 Leolvasás</button>
+    <button data-m="rel2int">Reláció → intervallum</button>
+    <button data-m="int2rel">Intervallum → reláció</button>
+    <button data-m="mixed">🎲 Vegyes</button>
+  </nav>
+
+  <section class="card">
+    <div class="task-head">
+      <span class="tag" id="taskTag"></span>
+      <span class="score" id="score"></span>
+    </div>
+    <div id="prompt"></div>
+    <div id="work"></div>
+    <div class="actions">
+      <button class="btn main" id="checkBtn">Ellenőrzés</button>
+      <button class="btn sec" id="newBtn">Új feladat</button>
+    </div>
+    <div class="fb" id="fb"></div>
+  </section>
+  <footer>Tipp: az Enter billentyűvel is ellenőrizhetsz, majd léphetsz tovább.</footer>
+</main>
+
+<script>
+(() => {
+'use strict';
+const MIN = -10, MAX = 10, Y = 52, COLOR = '#7c3aed';
+const NS = 'http://www.w3.org/2000/svg';
+const S = {
+  mode: 'draw', type: 'draw', notation: 'paren', task: null, variant: null, showAsSet: false,
+  answered: false, score: 0, total: 0, streak: 0,
+  draw: null, ib: null, lastKey: ''
+};
+try { const n = localStorage.getItem('intv-notation'); if (n === 'paren' || n === 'rev') S.notation = n; } catch (e) {}
+
+const $ = id => document.getElementById(id);
+const ri = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const coin = () => Math.random() < 0.5;
+const fmtNum = v => (typeof v === 'number' && v < 0) ? '−' + Math.abs(v) : String(v);
+const art = v => (v === 1 || v === 5) ? 'az' : 'a';
+const openL = () => S.notation === 'paren' ? '(' : ']';
+const openR = () => S.notation === 'paren' ? ')' : '[';
+
+function fmtInt(I) {
+  const l = I.a === null ? openL() + '−∞' : (I.ac ? '[' : openL()) + fmtNum(I.a);
+  const r = I.b === null ? '∞' + openR() : fmtNum(I.b) + (I.bc ? ']' : openR());
+  return l + ' ; ' + r;
+}
+function fmtRel(I, variant) {
+  const le = c => c ? '≤' : '<', ge = c => c ? '≥' : '>';
+  if (I.a !== null && I.b !== null) {
+    if (variant === 'rev') return `${fmtNum(I.b)} ${ge(I.bc)} x ${ge(I.ac)} ${fmtNum(I.a)}`;
+    return `${fmtNum(I.a)} ${le(I.ac)} x ${le(I.bc)} ${fmtNum(I.b)}`;
+  }
+  if (I.a !== null) return variant === 'rev' ? `${fmtNum(I.a)} ${le(I.ac)} x` : `x ${ge(I.ac)} ${fmtNum(I.a)}`;
+  return variant === 'rev' ? `${fmtNum(I.b)} ${ge(I.bc)} x` : `x ${le(I.bc)} ${fmtNum(I.b)}`;
+}
+const fmtSet = (I, v) => `{ x ∈ ℝ | ${fmtRel(I, v)} }`;
+const eq = (P, Q) => P.a === Q.a && P.b === Q.b && (P.a === null || P.ac === Q.ac) && (P.b === null || P.bc === Q.bc);
+const keyOf = I => fmtInt(I);
+
+function genInterval() {
+  const r = Math.random();
+  if (r < 0.64) { const a = ri(-8, 6), b = ri(a + 1, 8); return { a, b, ac: coin(), bc: coin() }; }
+  if (r < 0.82) return { a: ri(-8, 8), b: null, ac: coin(), bc: false };
+  return { a: null, b: ri(-8, 8), ac: false, bc: coin() };
+}
+function parseNum(s) {
+  s = String(s).trim().replace(/−/g, '-').replace(',', '.');
+  if (s === '' || s === '-') return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/* ---------- number line ---------- */
+const X = v => 40 + (v - MIN) * 34;
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function newSvg() { return el('svg', { viewBox: '0 0 760 92', class: 'nl' }); }
+function baseLine(svg) {
+  el('line', { x1: 12, y1: Y, x2: 744, y2: Y, stroke: '#64607a', 'stroke-width': 2 }, svg);
+  el('polygon', { points: `754,${Y} 741,${Y - 6} 741,${Y + 6}`, fill: '#64607a' }, svg);
+  for (let v = MIN; v <= MAX; v++) {
+    const x = X(v), big = v === 0;
+    el('line', { x1: x, y1: Y - (big ? 10 : 7), x2: x, y2: Y + (big ? 10 : 7), stroke: '#64607a', 'stroke-width': big ? 2.5 : 1.5 }, svg);
+    const t = el('text', { x, y: Y + 31, 'text-anchor': 'middle', 'font-size': 15, 'font-family': 'Nunito,sans-serif', 'font-weight': big ? 800 : 600, fill: '#3b3850' }, svg);
+    t.textContent = fmtNum(v);
+  }
+}
+function shade(svg, x1, x2, arrL, arrR, color) {
+  el('line', { x1, y1: Y, x2, y2: Y, stroke: color, 'stroke-width': 7, 'stroke-linecap': arrL || arrR ? 'butt' : 'round', opacity: .85 }, svg);
+  if (arrL) el('polygon', { points: `${x1 - 12},${Y} ${x1 + 1},${Y - 10} ${x1 + 1},${Y + 10}`, fill: color }, svg);
+  if (arrR) el('polygon', { points: `${x2 + 12},${Y} ${x2 - 1},${Y - 10} ${x2 - 1},${Y + 10}`, fill: color }, svg);
+}
+function point(svg, v, closed, color) {
+  el('circle', { cx: X(v), cy: Y, r: 9, fill: closed ? color : '#fff', stroke: color, 'stroke-width': 3.5 }, svg);
+}
+function drawInterval(svg, I, color) {
+  const x1 = I.a === null ? 26 : X(I.a), x2 = I.b === null ? 726 : X(I.b);
+  shade(svg, x1, x2, I.a === null, I.b === null, color);
+  if (I.a !== null) point(svg, I.a, I.ac, color);
+  if (I.b !== null) point(svg, I.b, I.bc, color);
+}
+function staticLine(I, color) {
+  const svg = newSvg(); baseLine(svg); drawInterval(svg, I, color || COLOR);
+  const w = document.createElement('div'); w.className = 'nlwrap'; w.appendChild(svg); return w;
+}
+
+/* ---------- theory table ---------- */
+const NAMES = [
+  [{ a: 'a', b: 'b', ac: true, bc: true }, 'zárt intervallum'],
+  [{ a: 'a', b: 'b', ac: false, bc: false }, 'nyílt intervallum'],
+  [{ a: 'a', b: 'b', ac: true, bc: false }, 'balról zárt, jobbról nyílt'],
+  [{ a: 'a', b: 'b', ac: false, bc: true }, 'balról nyílt, jobbról zárt'],
+  [{ a: 'a', b: null, ac: true, bc: false }, 'balról zárt, jobbra végtelen'],
+  [{ a: 'a', b: null, ac: false, bc: false }, 'balról nyílt, jobbra végtelen'],
+  [{ a: null, b: 'b', ac: false, bc: true }, 'balra végtelen, jobbról zárt'],
+  [{ a: null, b: 'b', ac: false, bc: false }, 'balra végtelen, jobbról nyílt']
+];
+function miniLine(I) {
+  const svg = el('svg', { viewBox: '0 0 220 46', width: 200, height: 42 });
+  const yy = 20, xa = 70, xb = 150;
+  el('line', { x1: 6, y1: yy, x2: 208, y2: yy, stroke: '#64607a', 'stroke-width': 1.5 }, svg);
+  el('polygon', { points: `216,${yy} 206,${yy - 5} 206,${yy + 5}`, fill: '#64607a' }, svg);
+  const x1 = I.a === null ? 18 : xa, x2 = I.b === null ? 196 : xb;
+  el('line', { x1, y1: yy, x2, y2: yy, stroke: COLOR, 'stroke-width': 5 }, svg);
+  if (I.a === null) el('polygon', { points: `${x1 - 9},${yy} ${x1 + 1},${yy - 7} ${x1 + 1},${yy + 7}`, fill: COLOR }, svg);
+  if (I.b === null) el('polygon', { points: `${x2 + 9},${yy} ${x2 - 1},${yy - 7} ${x2 - 1},${yy + 7}`, fill: COLOR }, svg);
+  [[I.a, I.ac, xa, 'a'], [I.b, I.bc, xb, 'b']].forEach(([v, c, x, lab]) => {
+    if (v === null) return;
+    el('circle', { cx: x, cy: yy, r: 6.5, fill: c ? COLOR : '#fff', stroke: COLOR, 'stroke-width': 2.5 }, svg);
+    const t = el('text', { x, y: yy + 22, 'text-anchor': 'middle', 'font-size': 14, 'font-style': 'italic', 'font-family': 'Georgia,serif', fill: '#3b3850' }, svg);
+    t.textContent = lab;
+  });
+  return svg;
+}
+function renderTheory() {
+  const tb = $('theoryRows'); tb.innerHTML = '';
+  NAMES.forEach(([I, name]) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="nt">${esc(fmtInt(I))}</td><td>${esc(fmtRel(I))}</td><td class="ml"></td><td>${name}</td>`;
+    tr.querySelector('.ml').appendChild(miniLine(I));
+    tb.appendChild(tr);
+  });
+}
+
+/* ---------- tasks ---------- */
+const TYPE_LABEL = { draw: 'Ábrázolás számegyenesen', read: 'Leolvasás számegyenesről', rel2int: 'Relációs jelekből intervallum', int2rel: 'Intervallumból relációs jelek' };
+
+function newTask() {
+  let I, k, guard = 0;
+  do { I = genInterval(); k = keyOf(I); } while (k === S.lastKey && guard++ < 20);
+  S.lastKey = k; S.task = I; S.answered = false;
+  S.type = S.mode === 'mixed' ? ['draw', 'read', 'rel2int', 'int2rel'][ri(0, 3)] : S.mode;
+  S.variant = Math.random() < 0.25 ? 'rev' : 'std';
+  S.showAsSet = S.type === 'draw' && Math.random() < 0.35;
+  $('taskTag').textContent = TYPE_LABEL[S.type];
+  $('checkBtn').textContent = 'Ellenőrzés';
+  const fb = $('fb'); fb.className = 'fb'; fb.innerHTML = '';
+  renderTask();
+}
+
+function renderTask() {
+  const I = S.task, P = $('prompt'), W = $('work');
+  P.innerHTML = ''; W.innerHTML = '';
+  if (S.type === 'draw') {
+    if (S.showAsSet) P.innerHTML = `<p class="q">Ábrázold a számegyenesen a következő számhalmazt!</p><div class="big set">${esc(fmtSet(I, S.variant))}</div>`;
+    else P.innerHTML = `<p class="q">Ábrázold a számegyenesen az alábbi intervallumot!</p><div class="big">${esc(fmtInt(I))}</div>`;
+    S.draw = { pts: [], infL: false, infR: false, tool: true };
+    buildDrawUI(W);
+  } else if (S.type === 'read') {
+    P.innerHTML = `<p class="q">Írd fel intervallumként a számegyenesen ábrázolt számhalmazt!</p>`;
+    P.appendChild(staticLine(I));
+    buildIB(W);
+  } else if (S.type === 'rel2int') {
+    P.innerHTML = `<p class="q">Írd fel intervallum alakban a következő számhalmazt!</p><div class="big set">${esc(fmtSet(I, S.variant))}</div>`;
+    buildIB(W);
+  } else {
+    P.innerHTML = `<p class="q">Írd fel relációs jelek segítségével az alábbi intervallumot!</p><div class="big">${esc(fmtInt(I))}</div>`;
+    buildRel(W);
+  }
+  renderScore();
+}
+
+/* ---- drawing UI ---- */
+function buildDrawUI(W) {
+  W.innerHTML = `
+    <div class="tools" id="tools">
+      <button data-t="closed"><span class="dot f"></span>Tele karika (zárt)</button>
+      <button data-t="open"><span class="dot"></span>Üres karika (nyílt)</button>
+      <button data-t="infL">⟵ −∞ felé</button>
+      <button data-t="infR">+∞ felé ⟶</button>
+      <button data-t="clear">🗑 Törlés</button>
+    </div>
+    <div class="nlwrap" id="drawWrap"></div>
+    <p class="hint">Válaszd ki a karika típusát, majd kattints a megfelelő számra. Ha egy oldalon nincs határ, kapcsold be a végtelen felé nyilat.<br>Ugyanazzal a karikával a pontra kattintva törölheted.</p>`;
+  $('tools').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b || S.answered) return;
+    const t = b.dataset.t, d = S.draw;
+    if (t === 'closed') d.tool = true;
+    else if (t === 'open') d.tool = false;
+    else if (t === 'infL') { d.infL = !d.infL; if (d.infL) { d.infR = false; if (d.pts.length > 1) d.pts = [d.pts[d.pts.length - 1]]; } }
+    else if (t === 'infR') { d.infR = !d.infR; if (d.infR) { d.infL = false; if (d.pts.length > 1) d.pts = [d.pts[0]]; } }
+    else if (t === 'clear') { d.pts = []; d.infL = d.infR = false; }
+    renderDraw();
+  });
+  renderDraw();
+}
+function renderDraw() {
+  const d = S.draw;
+  document.querySelectorAll('#tools button').forEach(b => {
+    const t = b.dataset.t;
+    b.classList.toggle('on', (t === 'closed' && d.tool) || (t === 'open' && !d.tool) || (t === 'infL' && d.infL) || (t === 'infR' && d.infR));
+  });
+  const wrap = $('drawWrap'); wrap.innerHTML = '';
+  const svg = newSvg(); if (S.answered) svg.classList.add('locked');
+  baseLine(svg);
+  const p = d.pts;
+  if (p.length === 2 && !d.infL && !d.infR) shade(svg, X(p[0].v), X(p[1].v), false, false, COLOR);
+  if (d.infL) shade(svg, 26, p.length ? X(p[0].v) : 120, true, false, COLOR);
+  if (d.infR) shade(svg, p.length ? X(p[p.length - 1].v) : 640, 726, false, true, COLOR);
+  p.forEach(pt => point(svg, pt.v, pt.closed, COLOR));
+  const g = el('g', {}, svg);
+  for (let v = MIN; v <= MAX; v++) {
+    const h = el('g', { class: 'hit' }, g);
+    el('circle', { class: 'ghost', cx: X(v), cy: Y, r: 9, fill: d.tool ? COLOR : '#fff', stroke: COLOR, 'stroke-width': 3 }, h);
+    el('rect', { x: X(v) - 17, y: 10, width: 34, height: 78, fill: 'transparent' }, h);
+    h.addEventListener('click', () => clickTick(v));
+  }
+  wrap.appendChild(svg);
+}
+function clickTick(v) {
+  if (S.answered) return;
+  const d = S.draw, idx = d.pts.findIndex(p => p.v === v);
+  if (idx >= 0) {
+    if (d.pts[idx].closed === d.tool) d.pts.splice(idx, 1);
+    else d.pts[idx].closed = d.tool;
+  } else {
+    const max = (d.infL || d.infR) ? 1 : 2;
+    if (d.pts.length >= max) {
+      let j = 0, best = Infinity;
+      d.pts.forEach((p, i) => { const dist = Math.abs(p.v - v); if (dist < best) { best = dist; j = i; } });
+      d.pts[j] = { v, closed: d.tool };
+    } else d.pts.push({ v, closed: d.tool });
+  }
+  d.pts.sort((a, b) => a.v - b.v);
+  renderDraw();
+}
+function readDraw() {
+  const d = S.draw, p = d.pts;
+  if (d.infL) {
+    if (p.length !== 1) return { err: 'Balra végtelen intervallumnál egy végpontot kell megjelölnöd (a jobb oldalit).' };
+    return { a: null, b: p[0].v, ac: false, bc: p[0].closed };
+  }
+  if (d.infR) {
+    if (p.length !== 1) return { err: 'Jobbra végtelen intervallumnál egy végpontot kell megjelölnöd (a bal oldalit).' };
+    return { a: p[0].v, b: null, ac: p[0].closed, bc: false };
+  }
+  if (p.length < 2) return { err: p.length === 0 ? 'Még nem jelöltél meg semmit a számegyenesen.' : 'Még nem teljes az ábrázolás: kell egy második végpont, vagy egy végtelen felé mutató nyíl.' };
+  return { a: p[0].v, b: p[1].v, ac: p[0].closed, bc: p[1].closed };
+}
+
+/* ---- interval builder ---- */
+function buildIB(W) {
+  S.ib = { lc: true, rc: true, infA: false, infB: false };
+  W.innerHTML = `
+    <div class="builder">
+      <button class="br" id="ibL" title="Kattints a zárójel váltásához"></button>
+      <div class="end"><input id="ibA" inputmode="decimal" autocomplete="off" placeholder="?"><button class="infbtn" id="ibAinf">−∞</button></div>
+      <span class="semi">;</span>
+      <div class="end"><input id="ibB" inputmode="decimal" autocomplete="off" placeholder="?"><button class="infbtn" id="ibBinf">∞</button></div>
+      <button class="br" id="ibR" title="Kattints a zárójel váltásához"></button>
+    </div>
+    <p class="hint">Kattints a zárójelre a típusa váltásához. Ha nincs határ, nyomd meg a −∞ vagy ∞ gombot.</p>`;
+  $('ibL').onclick = () => { if (!S.answered && !S.ib.infA) { S.ib.lc = !S.ib.lc; renderIB(); } };
+  $('ibR').onclick = () => { if (!S.answered && !S.ib.infB) { S.ib.rc = !S.ib.rc; renderIB(); } };
+  $('ibAinf').onclick = () => { if (S.answered) return; S.ib.infA = !S.ib.infA; if (S.ib.infA) S.ib.lc = false; $('ibA').value = ''; renderIB(); };
+  $('ibBinf').onclick = () => { if (S.answered) return; S.ib.infB = !S.ib.infB; if (S.ib.infB) S.ib.rc = false; $('ibB').value = ''; renderIB(); };
+  renderIB();
+  setTimeout(() => { try { $('ibA').focus({ preventScroll: true }); } catch (e) {} }, 30);
+}
+function renderIB() {
+  const s = S.ib;
+  $('ibL').textContent = s.lc ? '[' : openL();
+  $('ibR').textContent = s.rc ? ']' : openR();
+  $('ibL').disabled = s.infA || S.answered; $('ibR').disabled = s.infB || S.answered;
+  const A = $('ibA'), B = $('ibB');
+  A.disabled = s.infA || S.answered; B.disabled = s.infB || S.answered;
+  if (s.infA) A.value = '−∞';
+  if (s.infB) B.value = '∞';
+  $('ibAinf').classList.toggle('on', s.infA); $('ibBinf').classList.toggle('on', s.infB);
+}
+function readIB() {
+  const s = S.ib; let a = null, b = null;
+  if (!s.infA) { a = parseNum($('ibA').value); if (a === null) return { err: 'Add meg a bal végpontot (vagy válaszd a −∞-t)!' }; }
+  if (!s.infB) { b = parseNum($('ibB').value); if (b === null) return { err: 'Add meg a jobb végpontot (vagy válaszd a ∞-t)!' }; }
+  if (s.infA && s.infB) return { err: 'Mindkét oldal végtelen – ez az összes valós szám lenne. Legalább egy végpontot adj meg!' };
+  if (a !== null && b !== null && a >= b) return { err: 'A bal oldali végpont legyen kisebb, mint a jobb oldali!' };
+  return { a, b, ac: s.infA ? false : s.lc, bc: s.infB ? false : s.rc };
+}
+
+/* ---- relation builder ---- */
+const RELOPTS = '<option value="">—</option><option value="lt">&lt;</option><option value="le">≤</option><option value="gt">&gt;</option><option value="ge">≥</option>';
+function buildRel(W) {
+  W.innerHTML = `
+    <div class="rel">
+      <input id="rA" inputmode="decimal" autocomplete="off" placeholder="?">
+      <select id="r1">${RELOPTS}</select>
+      <span class="x">x</span>
+      <select id="r2">${RELOPTS}</select>
+      <input id="rB" inputmode="decimal" autocomplete="off" placeholder="?">
+    </div>
+    <div class="preview" id="relPrev"></div>
+    <p class="hint">Ha az egyik oldalon nincs feltétel, ott hagyd a „—” jelet. Pl. x ≥ 2: a bal oldalon „—”, jobbra „≥ 2”.</p>`;
+  ['rA', 'r1', 'r2', 'rB'].forEach(id => { $(id).addEventListener('input', renderRel); $(id).addEventListener('change', renderRel); });
+  renderRel();
+}
+const RELSYM = { lt: '<', le: '≤', gt: '>', ge: '≥' };
+function renderRel() {
+  const r1 = $('r1').value, r2 = $('r2').value;
+  $('rA').disabled = !r1 || S.answered; $('rB').disabled = !r2 || S.answered;
+  $('r1').disabled = $('r2').disabled = S.answered;
+  if (!r1) $('rA').value = ''; if (!r2) $('rB').value = '';
+  let t = '';
+  if (r1) t += ($('rA').value.trim() || '?') + ' ' + RELSYM[r1] + ' ';
+  t += 'x';
+  if (r2) t += ' ' + RELSYM[r2] + ' ' + ($('rB').value.trim() || '?');
+  $('relPrev').innerHTML = (r1 || r2) ? 'A válaszod: <b>' + esc(`{ x ∈ ℝ | ${t.replace(/-/g, '−')} }`) + '</b>' : '';
+}
+function readRel() {
+  const r1 = $('r1').value, r2 = $('r2').value;
+  if (!r1 && !r2) return { err: 'Válassz legalább egy relációs jelet!' };
+  let lo = null, loC = false, hi = null, hiC = false, err = null;
+  const add = (kind, v, c) => {
+    if (kind === 'lo') { if (lo !== null) err = 'Mindkét feltétel alsó korlát lett – nézd meg a relációs jelek irányát!'; lo = v; loC = c; }
+    else { if (hi !== null) err = 'Mindkét feltétel felső korlát lett – nézd meg a relációs jelek irányát!'; hi = v; hiC = c; }
+  };
+  if (r1) {
+    const A = parseNum($('rA').value); if (A === null) return { err: 'Írd be a bal oldali számot!' };
+    ({ lt: () => add('lo', A, false), le: () => add('lo', A, true), gt: () => add('hi', A, false), ge: () => add('hi', A, true) })[r1]();
+  }
+  if (r2) {
+    const B = parseNum($('rB').value); if (B === null) return { err: 'Írd be a jobb oldali számot!' };
+    ({ lt: () => add('hi', B, false), le: () => add('hi', B, true), gt: () => add('lo', B, false), ge: () => add('lo', B, true) })[r2]();
+  }
+  if (err) return { err };
+  if (lo !== null && hi !== null && lo >= hi) return { err: 'Ilyen x nincs (üres halmaz) – ellenőrizd a számokat és a jelek irányát!' };
+  return { a: lo, b: hi, ac: lo === null ? false : loC, bc: hi === null ? false : hiC };
+}
+
+/* ---------- checking ---------- */
+function endMsg(v, closed, side, kind) {
+  const what = closed ? `${art(v) === 'az' ? 'Az' : 'A'} ${fmtNum(v)} eleme a halmaznak` : `${art(v) === 'az' ? 'Az' : 'A'} ${fmtNum(v)} nem eleme a halmaznak`;
+  let sign;
+  if (kind === 'draw') sign = closed ? 'tele karika' : 'üres karika';
+  else if (kind === 'rel') sign = closed ? '≤ vagy ≥ jel (egyenlőséggel)' : '< vagy > jel (egyenlőség nélkül)';
+  else sign = closed ? `„${side === 'L' ? '[' : ']'}” zárójel` : `„${side === 'L' ? openL() : openR()}” zárójel`;
+  return `${what}, ezért ${closed ? 'zárt' : 'nyílt'} végpont: ${sign} kell.`;
+}
+function hints(st, co, kind) {
+  const out = [];
+  if (co.a === null) { if (st.a !== null) out.push('Balra nincs határ: a halmaz balra a −∞ felé tart.'); }
+  else if (st.a === null) out.push(`Balról van határ: a bal végpont ${fmtNum(co.a)}.`);
+  else if (st.a !== co.a) out.push(`A bal végpont nem ${fmtNum(st.a)}, hanem ${fmtNum(co.a)}.`);
+  else if (st.ac !== co.ac) out.push(endMsg(co.a, co.ac, 'L', kind));
+  if (co.b === null) { if (st.b !== null) out.push('Jobbra nincs határ: a halmaz jobbra a +∞ felé tart.'); }
+  else if (st.b === null) out.push(`Jobbról van határ: a jobb végpont ${fmtNum(co.b)}.`);
+  else if (st.b !== co.b) out.push(`A jobb végpont nem ${fmtNum(st.b)}, hanem ${fmtNum(co.b)}.`);
+  else if (st.bc !== co.bc) out.push(endMsg(co.b, co.bc, 'R', kind));
+  return out;
+}
+function check() {
+  if (S.answered) { newTask(); return; }
+  const kind = S.type === 'draw' ? 'draw' : S.type === 'int2rel' ? 'rel' : 'ib';
+  const st = kind === 'draw' ? readDraw() : kind === 'rel' ? readRel() : readIB();
+  const fb = $('fb');
+  if (st.err) { fb.className = 'fb warn'; fb.innerHTML = `<h3>Figyelem!</h3>${esc(st.err)}`; return; }
+  const co = S.task, ok = eq(st, co);
+  S.total++; if (ok) { S.score++; S.streak++; } else S.streak = 0;
+  S.answered = true;
+  const ans = `<div class="ans">Helyes válasz: <b>${esc(fmtInt(co))}</b> &nbsp;=&nbsp; <b>${esc(fmtSet(co))}</b></div>`;
+  if (ok) {
+    const praise = ['Helyes!', 'Szuper!', 'Ügyes!', 'Pontosan!', 'Kiváló!'][ri(0, 4)];
+    fb.className = 'fb ok';
+    fb.innerHTML = `<h3>✔ ${praise}${S.streak >= 3 ? ` ${S.streak} helyes válasz egymás után! 🔥` : ''}</h3>${ans}`;
+    if (S.type !== 'read' && S.type !== 'draw') fb.appendChild(staticLine(co, '#15803d'));
+  } else {
+    fb.className = 'fb bad';
+    const h = hints(st, co, kind);
+    fb.innerHTML = `<h3>✘ Nem jó.</h3>${h.length ? '<ul>' + h.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' : ''}${ans}`;
+    fb.appendChild(staticLine(co, '#15803d'));
+  }
+  if (kind === 'draw') renderDraw(); else if (kind === 'ib') renderIB(); else renderRel();
+  $('checkBtn').textContent = 'Következő feladat →';
+  renderScore();
+}
+function renderScore() {
+  $('score').innerHTML = `Pont: <b>${S.score} / ${S.total}</b>${S.streak >= 2 ? ` · Sorozat: <b>${S.streak}</b> 🔥` : ''}`;
+}
+
+/* ---------- wiring ---------- */
+function setMode(m) {
+  S.mode = m;
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.m === m));
+  newTask();
+}
+function setNotation(n) {
+  S.notation = n;
+  try { localStorage.setItem('intv-notation', n); } catch (e) {}
+  document.querySelectorAll('#notSeg button').forEach(b => b.classList.toggle('on', b.dataset.n === n));
+  renderTheory();
+  if (S.task) {
+    // re-render text without losing the student's work
+    const big = document.querySelector('#prompt .big:not(.set)');
+    if (big) big.textContent = fmtInt(S.task);
+    if (S.ib && document.getElementById('ibL')) renderIB();
+    if (S.answered) { const a = document.querySelector('#fb .ans b'); if (a) a.textContent = fmtInt(S.task); }
+  }
+}
+$('tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setMode(b.dataset.m); });
+$('notSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setNotation(b.dataset.n); });
+$('checkBtn').onclick = check;
+$('newBtn').onclick = newTask;
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.target.closest('button') && !e.target.closest('nav') && e.target.tagName !== 'SUMMARY') { e.preventDefault(); check(); }
+});
+setNotation(S.notation);
+setMode('draw');
+})();
+</script>
+</body>
+</html>
