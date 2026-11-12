@@ -573,11 +573,13 @@ function renderSetTask(P, W) {
         <button data-t="line"><span style="display:inline-block;width:22px;height:6px;background:${COLOR};border-radius:3px"></span>Satírozás</button>
         <button data-t="c"><span class="dot f"></span>Tele karika</button>
         <button data-t="o"><span class="dot"></span>Üres karika</button>
+        <button data-t="infL">⟵ −∞ felé</button>
+        <button data-t="infR">+∞ felé ⟶</button>
         <button data-t="erase">🧽 Radír</button>
         <button data-t="clear">🗑 Törlés</button>
       </div>
       <div id="paintBox"></div>
-      <p class="hint">Satírozd be (kattintással vagy húzással) a halmazhoz tartozó szakaszokat – a széleken a végtelen felé is –, majd a végpontokat jelöld tele vagy üres karikával. Ha a halmaz üres, hagyd üresen.</p>
+      <p class="hint">Satírozd be (kattintással vagy húzással) a halmazhoz tartozó szakaszokat, a végpontokat jelöld tele vagy üres karikával. Ha a halmaz a végtelenbe nyúlik, tedd le a végpont karikáját, majd nyomd meg a „−∞ felé” vagy „+∞ felé” gombot. Ha a halmaz üres, hagyd üresen.</p>
     </div>
     <div class="sect"><h4>2. Írd fel ${op.art} ${esc(op.expr)} halmazt!</h4>
       <div class="forms" id="forms">
@@ -630,8 +632,31 @@ function buildPaint() {
   svg.addEventListener('pointerup', end); svg.addEventListener('pointercancel', end);
   $('ptools').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b || S.answered) return;
-    if (b.dataset.t === 'clear') { P.gaps.fill(false); P.pts = {}; }
-    else P.tool = b.dataset.t;
+    const t = b.dataset.t, g = P.gaps;
+    if (t === 'clear') { g.fill(false); P.pts = {}; }
+    else if (t === 'infR') {
+      if (!g[21]) {
+        // a legjobboldali jelöléstől (karika vagy satírozás) a végtelenig
+        let a = null;
+        for (let k = -1; k <= 20; k++) if (g[k + 1]) a = k - 9;
+        for (const v in P.pts) if (a === null || +v > a) a = +v;
+        const from = a === null ? 20 : Math.max(-1, a + 10);
+        for (let k = from; k <= 20; k++) g[k + 1] = true;
+      } else {
+        for (let k = 20; k >= -1 && g[k + 1]; k--) { g[k + 1] = false; if (P.pts[k - 10]) break; }
+      }
+    } else if (t === 'infL') {
+      if (!g[0]) {
+        let a = null;
+        for (let k = 20; k >= -1; k--) if (g[k + 1]) a = k - 10;
+        for (const v in P.pts) if (a === null || +v < a) a = +v;
+        const to = a === null ? -1 : Math.min(20, a + 9);
+        for (let k = -1; k <= to; k++) g[k + 1] = true;
+      } else {
+        for (let k = -1; k <= 20 && g[k + 1]; k++) { g[k + 1] = false; if (P.pts[k - 9]) break; }
+      }
+    }
+    else P.tool = t;
     renderPaint();
   });
   P.svg = svg;
@@ -639,7 +664,8 @@ function buildPaint() {
 }
 function renderPaint() {
   const P = S.paint, svg = P.svg;
-  document.querySelectorAll('#ptools button').forEach(b => b.classList.toggle('on', b.dataset.t === P.tool));
+  document.querySelectorAll('#ptools button').forEach(b => b.classList.toggle('on',
+    b.dataset.t === P.tool || (b.dataset.t === 'infL' && P.gaps[0]) || (b.dataset.t === 'infR' && P.gaps[21])));
   while (svg.firstChild) svg.removeChild(svg.firstChild);
   baseLine(svg);
   for (let k = -1; k <= 20; k++) {
